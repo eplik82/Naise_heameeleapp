@@ -1,0 +1,72 @@
+name: Android APK
+
+# Ehitab paigaldatava APK ja paneb selle release'i „uusim" alla:
+# https://github.com/<omanik>/<repo>/releases/tag/uusim
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: android-apk
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Sõltuvused
+        run: npm ci
+
+      - name: Tüübikontroll ja testid
+        run: |
+          npm run typecheck
+          npm test
+
+      - name: Androidi projekt (expo prebuild)
+        run: npx expo prebuild --platform android --no-install
+        env:
+          CI: 1
+
+      # Ehitame ainult arm64-v8a jaoks – see katab kõik tänapäevased Android-telefonid
+      # ja teeb ehituse mitu korda kiiremaks.
+      - name: APK ehitamine
+        working-directory: android
+        run: ./gradlew assembleRelease -PreactNativeArchitectures=arm64-v8a --no-daemon
+
+      - name: APK ümbernimetamine
+        run: cp android/app/build/outputs/apk/release/app-release.apk heameel.apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: heameel-apk
+          path: heameel.apk
+
+      - name: Release „uusim"
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete uusim --yes --cleanup-tag || true
+          gh release create uusim heameel.apk \
+            --title "Heameel – uusim Androidi versioon" \
+            --notes "Ehitatud commit'ist ${GITHUB_SHA::7} ($(date -u '+%d.%m.%Y %H:%M') UTC).
+
+          **Paigaldamine:** ava see leht telefonis, laadi alla \`heameel.apk\` ja ava fail. Kui telefon küsib, luba brauseril tundmatutest allikatest äppe paigaldada."

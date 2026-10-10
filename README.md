@@ -33,11 +33,19 @@ kaameraga). Telefon ja arvuti peavad olema samas WiFi-võrgus; kui ei ole, kasut
 Esimesel käivitamisel küsib äpp luba teavitusteks ja planeerimisel kalendri
 kasutamiseks. Teavituse proovimiseks vajuta **Seaded → Saada proovisoovitus**.
 
-### Päris äpi paigaldusfail
+### Paigaldamine Android-telefoni (APK)
 
-```bash
-npx eas-cli@latest build --platform android --profile preview
-```
+Iga muudatus `main`-harus ehitab GitHub Actionsis uue paigaldusfaili ja paneb selle
+release'i **[uusim](https://github.com/eplik82/Naise_heameeleapp/releases/tag/uusim)** alla.
+
+1. Ava see link telefonis ja laadi alla `heameel.apk`.
+2. Ava allalaaditud fail. Kui telefon küsib, luba brauseril (või failihalduril)
+   tundmatutest allikatest äppe paigaldada.
+3. Uue versiooni saab paigaldada vana peale, andmed jäävad alles.
+
+APK on allkirjastatud Expo malli arendusvõtmega – telefoni panemiseks sobib, Google
+Play poodi panemiseks on vaja oma võtit. Ehitus on tehtud 64-bitistele (arm64)
+telefonidele, mis on kõik viimase ~8 aasta Android-telefonid.
 
 ## Arendus
 
