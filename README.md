@@ -1,0 +1,60 @@
+# Heameel – naise heameeleapp
+
+Mobiiläpp (Android ja iOS), mis aitab mehel oma kaaslast rõõmsamaks teha:
+annab teavitustega soovitusi (näiteks osta lilli või minna teatrisse), aitab
+üllatusi planeerida, tuletab neid meelde ja lisab need telefoni kalendrisse.
+
+Nõuded on kirjas failis [LAHTEULESANNE.md](LAHTEULESANNE.md).
+
+## Mida äpp teeb
+
+| Lähteülesande nõue | Kus äpis |
+|---|---|
+| Soovitused erinevate tegevuste kohta | **Täna** – 36 soovitust kaheksas kategoorias (lilled, kultuur, väljaskäik, kodus, kingitus, tähelepanu, heaolu, seiklus). Hiljutised soovitused ei kordu ja kaks järjestikust soovitust on eri kategooriast. |
+| Teavitus soovitusest | Soovitused tulevad telefoni teavitustena. Teavitust vajutades avaneb see soovitus äpis. |
+| Seadetes saab määrata, kui tihti | **Seaded** – iga päev, ülepäeviti, kaks korda nädalas, kord nädalas või kord kahe nädala jooksul, ning kellaaeg. Valida saab ka kategooriad. |
+| Meeldetuletused ja üllatuste planeerimine | **Plaanid** – soovituse või oma idee saab planeerida kindlaks ajaks. Meeldetuletus tuleb valitud päevade arv enne (vaikimisi 1 päev enne kell 9.00). |
+| Kalendrikirjed | Planeerides lisatakse kirje telefoni kalendrisse koos meeldetuletusega 1 h enne. Plaani kustutades kustub ka kalendrikirje. |
+
+## Käivitamine
+
+Vaja on [Node.js](https://nodejs.org/) 20+ ja telefoni äppi **Expo Go**
+(Google Play / App Store).
+
+```bash
+npm install
+npx expo start
+```
+
+Skanni terminalis näidatud QR-kood telefoniga (Androidis Expo Go äpist, iPhone'is
+kaameraga). Telefon ja arvuti peavad olema samas WiFi-võrgus; kui ei ole, kasuta
+`npx expo start --tunnel`.
+
+Esimesel käivitamisel küsib äpp luba teavitusteks ja planeerimisel kalendri
+kasutamiseks. Teavituse proovimiseks vajuta **Seaded → Saada proovisoovitus**.
+
+### Päris äpi paigaldusfail
+
+```bash
+npx eas-cli@latest build --platform android --profile preview
+```
+
+## Arendus
+
+```bash
+npm run typecheck   # TypeScripti kontroll
+npm test            # soovituste ja ajastamise loogika testid
+```
+
+| Kaust/fail | Sisu |
+|---|---|
+| `src/app/` | Ekraanid (Expo Router): `index.tsx` Täna, `plaanid.tsx`, `seaded.tsx` |
+| `src/data/suggestions.ts` | Soovituste kataloog – uued soovitused lisa siia |
+| `src/lib/logic.ts` | Soovituse valik ja teavituste aegade arvutus (testitud) |
+| `src/lib/notifications.ts` | Kohalikud teavitused |
+| `src/lib/calendar.ts` | Kalendrikirjed |
+| `src/lib/store.tsx` | Äpi olek ja salvestus telefoni |
+
+Kuna kohalikud teavitused peavad olema ette ajastatud, ajastab äpp korraga
+järgmised 20 soovitust. Iga kord, kui äpp avatakse või seadeid muudetakse,
+ajastatakse need uuesti.

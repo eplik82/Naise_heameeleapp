@@ -1,0 +1,44 @@
+{
+  "expo": {
+    "name": "Heameel",
+    "slug": "naise-heameeleapp",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "ee.eplik.heameel"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#FCE4EC",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false,
+      "package": "ee.eplik.heameel"
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-notifications",
+        {
+          "color": "#E0457B"
+        }
+      ],
+      [
+        "expo-calendar",
+        {
+          "calendarPermission": "Heameel lisab planeeritud üllatused sinu kalendrisse."
+        }
+      ],
+      "@react-native-community/datetimepicker"
+    ],
+    "scheme": "heameel"
+  }
+}
