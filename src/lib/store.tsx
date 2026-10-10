@@ -46,6 +46,8 @@ type State = {
   history: string[];
   currentId?: string;
   schedule: ScheduledSuggestion[];
+  /** Kategooriad, mida kasutaja on juba näinud – uued kategooriad lülitatakse sisse. */
+  knownCategories: Category[];
 };
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -59,7 +61,16 @@ export const DEFAULT_SETTINGS: Settings = {
   addToCalendarByDefault: true,
 };
 
-const INITIAL_STATE: State = { settings: DEFAULT_SETTINGS, plans: [], history: [], schedule: [] };
+const INITIAL_STATE: State = {
+  settings: DEFAULT_SETTINGS,
+  plans: [],
+  history: [],
+  schedule: [],
+  knownCategories: ALL_CATEGORIES,
+};
+
+/** Kategooriad, mis olid äpi esimeses versioonis (enne „Kodutööd" lisamist). */
+const V1_CATEGORIES: Category[] = ['lilled', 'kultuur', 'valjaskaik', 'kodu', 'kingitus', 'tahelepanu', 'heaolu', 'seiklus'];
 
 export type NewPlan = {
   title: string;
@@ -122,11 +133,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     let schedule: ScheduledSuggestion[] = [];
     if (settings.notificationsEnabled && settings.categories.length > 0 && (await ensureNotificationPermission())) {
       const dates = notificationDates(now, settings.intervalDays, settings.hour, settings.minute, SCHEDULE_AHEAD);
-      const picks = pickSequence(SUGGESTIONS, settings.categories, history, dates.length);
-      schedule = await scheduleSuggestions(
-        picks.map((suggestion, i) => ({ date: dates[i], suggestion })),
-        settings.partnerName,
-      );
+      const picks = pickSequence(SUGGESTIONS, settings.categories, history, dates);
+      schedule = await scheduleSuggestions(picks, settings.partnerName);
     } else {
       await cancelSuggestions();
     }
@@ -148,16 +156,21 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         const raw = await AsyncStorage.getItem(STORAGE_KEY);
         if (raw) {
           const saved = JSON.parse(raw) as Partial<State>;
+          const settings = { ...DEFAULT_SETTINGS, ...saved.settings };
+          const known = saved.knownCategories ?? V1_CATEGORIES;
+          const added = ALL_CATEGORIES.filter((c) => !known.includes(c));
           ref.current = {
             ...INITIAL_STATE,
             ...saved,
-            settings: { ...DEFAULT_SETTINGS, ...saved.settings },
+            settings: { ...settings, categories: [...settings.categories, ...added] },
+            knownCategories: ALL_CATEGORIES,
           };
         }
       } catch {
         // Rikutud andmed – alustame vaikeväärtustega.
       }
-      if (!ref.current.currentId) {
+      // Uus kasutaja või salvestatud soovitust enam kataloogis pole.
+      if (!SUGGESTIONS.some((x) => x.id === ref.current.currentId)) {
         const first = pickSuggestion(SUGGESTIONS, ref.current.settings.categories, ref.current.history);
         if (first) ref.current = { ...ref.current, currentId: first.id, history: pushHistory(ref.current.history, first.id) };
       }

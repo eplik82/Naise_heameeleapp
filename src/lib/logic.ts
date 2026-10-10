@@ -1,4 +1,4 @@
-import { Category, Suggestion } from '../data/suggestions';
+import { Category, isInSeason, Suggestion } from '../data/suggestions';
 
 export type Frequency = {
   /** Mitme päeva tagant soovitus tuleb. */
@@ -18,16 +18,18 @@ export const FREQUENCIES: Frequency[] = [
 export const RECENT_LIMIT = 12;
 
 /**
- * Valib soovituse lubatud kategooriatest nii, et hiljuti antud soovitused
- * ei korduks ja eelmise soovituse kategooria ei tuleks kohe uuesti.
+ * Valib soovituse lubatud kategooriatest nii, et see sobiks kuupäeva aastaaega
+ * (talvel pole piknikku), hiljuti antud soovitused ei korduks ja eelmise
+ * soovituse kategooria ei tuleks kohe uuesti.
  */
 export function pickSuggestion(
   all: Suggestion[],
   categories: Category[],
   recentIds: string[],
+  date: Date = new Date(),
   random: () => number = Math.random,
 ): Suggestion | undefined {
-  const allowed = all.filter((s) => categories.includes(s.category));
+  const allowed = all.filter((s) => categories.includes(s.category) && isInSeason(s, date));
   if (allowed.length === 0) return undefined;
 
   // Mida vähem soovitusi on, seda lühem on keelatud ajalugu – muidu ei jääks valikut.
@@ -41,21 +43,24 @@ export function pickSuggestion(
   return pool[Math.floor(random() * pool.length)];
 }
 
-/** Valib järjest mitu soovitust, arvestades ka eelmisi valikuid samas järjendis. */
+/**
+ * Valib soovituse igaks kuupäevaks (iga kuupäeva aastaaja järgi), arvestades ka
+ * eelmisi valikuid samas järjendis. Kuupäev, millele sobivat soovitust pole, jäetakse vahele.
+ */
 export function pickSequence(
   all: Suggestion[],
   categories: Category[],
   recentIds: string[],
-  count: number,
+  dates: Date[],
   random: () => number = Math.random,
-): Suggestion[] {
+): { date: Date; suggestion: Suggestion }[] {
   const history = [...recentIds];
-  const result: Suggestion[] = [];
-  for (let i = 0; i < count; i++) {
-    const s = pickSuggestion(all, categories, history, random);
-    if (!s) break;
-    result.push(s);
-    history.push(s.id);
+  const result: { date: Date; suggestion: Suggestion }[] = [];
+  for (const date of dates) {
+    const suggestion = pickSuggestion(all, categories, history, date, random);
+    if (!suggestion) continue;
+    result.push({ date, suggestion });
+    history.push(suggestion.id);
   }
   return result;
 }

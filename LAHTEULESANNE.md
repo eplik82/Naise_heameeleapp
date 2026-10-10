@@ -31,3 +31,15 @@ osutamist ja aitab planeerida üllatusi.
 
 * Äpp peab suutma teha kalendrisse kirjeid (näiteks planeeritud üllatuse või
   tegevuse kohta).
+
+### 6. Aastaaeg
+
+* Soovitused lähtuvad aastaajast – näiteks talvel ei pakuta piknikku.
+
+### 7. Kodused tegevused
+
+* Soovituste hulgas on ka kodutööd, näiteks aita pesu kokku panna või aita koristada.
+
+### 8. Ikoon
+
+* Äpil on oma ikoon.

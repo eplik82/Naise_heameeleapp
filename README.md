@@ -10,7 +10,9 @@ Nõuded on kirjas failis [LAHTEULESANNE.md](LAHTEULESANNE.md).
 
 | Lähteülesande nõue | Kus äpis |
 |---|---|
-| Soovitused erinevate tegevuste kohta | **Täna** – 36 soovitust kaheksas kategoorias (lilled, kultuur, väljaskäik, kodus, kingitus, tähelepanu, heaolu, seiklus). Hiljutised soovitused ei kordu ja kaks järjestikust soovitust on eri kategooriast. |
+| Soovitused erinevate tegevuste kohta | **Täna** – 76 soovitust üheksas kategoorias (lilled, kultuur, väljaskäik, kodus koos, kodutööd, kingitus, tähelepanu, heaolu, seiklus). Hiljutised soovitused ei kordu ja kaks järjestikust soovitust on eri kategooriast. |
+| Soovitused aastaaja järgi | Igal soovitusel võivad olla kuud, millal see sobib: talvel ei tule piknikku ega ujumist, suvel lumelükkamist ega uisutamist; detsembris tulevad jõuluturg ja piparkoogid, juunis jaanituli. Ette ajastatud teavitused arvestavad oma kuupäeva aastaaega. |
+| Kodused tegevused | Kategooria **Kodutööd**: aita pesu kokku panna, aita koristada, pese nõud, vaheta voodipesu, käi poes jne. |
 | Teavitus soovitusest | Soovitused tulevad telefoni teavitustena. Teavitust vajutades avaneb see soovitus äpis. |
 | Seadetes saab määrata, kui tihti | **Seaded** – iga päev, ülepäeviti, kaks korda nädalas, kord nädalas või kord kahe nädala jooksul, ning kellaaeg. Valida saab ka kategooriad. |
 | Meeldetuletused ja üllatuste planeerimine | **Plaanid** – soovituse või oma idee saab planeerida kindlaks ajaks. Meeldetuletus tuleb valitud päevade arv enne (vaikimisi 1 päev enne kell 9.00). |

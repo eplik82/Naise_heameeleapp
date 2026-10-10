@@ -1,7 +1,7 @@
 /// <reference types="node" />
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { ALL_CATEGORIES, SUGGESTIONS } from '../data/suggestions';
+import { ALL_CATEGORIES, isInSeason, SUGGESTIONS } from '../data/suggestions';
 import { notificationDates, pickSequence, pickSuggestion, planReminderDate, RECENT_LIMIT } from './logic';
 
 test('kõigil soovitustel on unikaalne id', () => {
@@ -26,8 +26,13 @@ test('ilma kategooriateta soovitust ei tule', () => {
   assert.equal(pickSuggestion(SUGGESTIONS, [], []), undefined);
 });
 
+/** count järjestikust päeva alates start'ist. */
+function days(start: Date, count: number): Date[] {
+  return Array.from({ length: count }, (_, i) => new Date(start.getFullYear(), start.getMonth(), start.getDate() + i, 10));
+}
+
 test('hiljutised soovitused ei kordu ja kategooria vaheldub', () => {
-  const seq = pickSequence(SUGGESTIONS, ALL_CATEGORIES, [], 40);
+  const seq = pickSequence(SUGGESTIONS, ALL_CATEGORIES, [], days(new Date(2026, 6, 1), 40)).map((x) => x.suggestion);
   assert.equal(seq.length, 40);
   for (let i = 1; i < seq.length; i++) {
     const window = seq.slice(Math.max(0, i - RECENT_LIMIT), i).map((s) => s.id);
@@ -37,9 +42,56 @@ test('hiljutised soovitused ei kordu ja kategooria vaheldub', () => {
 });
 
 test('ühe kategooria korral leitakse ikka soovitus', () => {
-  const seq = pickSequence(SUGGESTIONS, ['lilled'], [], 10);
+  const seq = pickSequence(SUGGESTIONS, ['lilled'], [], days(new Date(2026, 0, 1), 10)).map((x) => x.suggestion);
   assert.equal(seq.length, 10);
   for (let i = 1; i < seq.length; i++) assert.notEqual(seq[i].id, seq[i - 1].id);
+});
+
+test('talvel ei pakuta pikniku, ujumist ega muru niitmist', () => {
+  const winter = ['seiklus-piknik', 'seiklus-ujuma', 'kodutood-muru', 'valjas-terrass', 'seiklus-jaanituli'];
+  for (const month of [11, 0, 1]) {
+    const date = new Date(2026, month, 15);
+    for (let i = 0; i < 300; i++) {
+      const s = pickSuggestion(SUGGESTIONS, ALL_CATEGORIES, [], date);
+      assert.ok(s && !winter.includes(s.id), `${s?.id} kuus ${month + 1}`);
+      assert.ok(isInSeason(s, date));
+    }
+  }
+});
+
+test('suvel ei pakuta lumelükkamist ega uisutamist', () => {
+  const date = new Date(2026, 6, 15);
+  for (let i = 0; i < 300; i++) {
+    const s = pickSuggestion(SUGGESTIONS, ALL_CATEGORIES, [], date);
+    assert.ok(s && !['kodutood-lumi', 'seiklus-uisud', 'seiklus-kelk'].includes(s.id), String(s?.id));
+  }
+});
+
+test('iga ette ajastatud soovitus sobib oma kuupäeva aastaaega', () => {
+  // Ajastus üle aastavahetuse: novembrist veebruarini.
+  const seq = pickSequence(SUGGESTIONS, ALL_CATEGORIES, [], days(new Date(2026, 10, 20), 90));
+  for (const { date, suggestion } of seq) assert.ok(isInSeason(suggestion, date), `${suggestion.id} ${date.toDateString()}`);
+});
+
+test('igal kuul on igas kategoorias vähemalt üks soovitus', () => {
+  for (let m = 0; m < 12; m++) {
+    for (const c of ALL_CATEGORIES) {
+      assert.ok(
+        SUGGESTIONS.some((s) => s.category === c && isInSeason(s, new Date(2026, m, 15))),
+        `${c} kuus ${m + 1}`,
+      );
+    }
+  }
+});
+
+test('kodutööde soovitused on olemas', () => {
+  const ids = SUGGESTIONS.filter((s) => s.category === 'kodutood').map((s) => s.id);
+  assert.ok(ids.includes('kodutood-pesu'));
+  assert.ok(ids.includes('kodutood-koristus'));
+});
+
+test('soovituste kuud on vahemikus 1–12', () => {
+  for (const s of SUGGESTIONS) for (const m of s.months ?? []) assert.ok(m >= 1 && m <= 12, s.id);
 });
 
 test('teavituste ajad: täna, kui kellaaeg pole veel möödas', () => {
