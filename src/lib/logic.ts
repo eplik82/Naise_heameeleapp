@@ -66,19 +66,33 @@ export function pickSequence(
 }
 
 /**
- * Arvutab järgmiste teavituste ajad: esimene on lähim tulevane kellaaeg
- * hour:minute, järgmised iga intervalDays päeva tagant.
+ * Arvutab järgmiste soovitusteavituste ajad kellaajal hour:minute, iga intervalDays
+ * päeva tagant. Esimene tuleb intervalDays päeva pärast viimast soovitust (lastAt),
+ * et äpi avamine või seadete muutmine ei tooks soovitust varem. Kui see aeg on juba
+ * möödas (või viimast soovitust pole), tuleb esimene lähimal tulevasel kellaajal.
  */
 export function notificationDates(
   now: Date,
+  lastAt: Date | undefined,
   intervalDays: number,
   hour: number,
   minute: number,
   count: number,
 ): Date[] {
-  const first = new Date(now);
-  first.setHours(hour, minute, 0, 0);
-  if (first.getTime() <= now.getTime()) first.setDate(first.getDate() + 1);
+  let first: Date;
+  if (lastAt) {
+    first = new Date(lastAt);
+    first.setDate(first.getDate() + intervalDays);
+    first.setHours(hour, minute, 0, 0);
+  } else {
+    first = new Date(now);
+    first.setHours(hour, minute, 0, 0);
+  }
+  if (first.getTime() <= now.getTime()) {
+    first = new Date(now);
+    first.setHours(hour, minute, 0, 0);
+    if (first.getTime() <= now.getTime()) first.setDate(first.getDate() + 1);
+  }
 
   const dates: Date[] = [];
   for (let i = 0; i < count; i++) {

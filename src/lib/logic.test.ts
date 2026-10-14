@@ -96,7 +96,7 @@ test('soovituste kuud on vahemikus 1–12', () => {
 
 test('teavituste ajad: täna, kui kellaaeg pole veel möödas', () => {
   const now = new Date(2026, 9, 10, 8, 0);
-  const dates = notificationDates(now, 3, 10, 30, 3);
+  const dates = notificationDates(now, undefined, 3, 10, 30, 3);
   assert.deepEqual(
     dates.map((d) => [d.getDate(), d.getHours(), d.getMinutes()]),
     [[10, 10, 30], [13, 10, 30], [16, 10, 30]],
@@ -105,9 +105,38 @@ test('teavituste ajad: täna, kui kellaaeg pole veel möödas', () => {
 
 test('teavituste ajad: homme, kui kellaaeg on möödas', () => {
   const now = new Date(2026, 9, 10, 12, 0);
-  const [first, second] = notificationDates(now, 7, 10, 0, 2);
+  const [first, second] = notificationDates(now, undefined, 7, 10, 0, 2);
   assert.equal(first.getDate(), 11);
   assert.equal(second.getDate(), 18);
+});
+
+test('kahenädalase sageduse korral ei too äpi igapäevane avamine teavitust varem', () => {
+  // Viimane soovitus tuli 10. oktoobril kell 10; äppi avatakse iga päev kella 12 paiku.
+  const last = new Date(2026, 9, 10, 10, 0);
+  for (let day = 10; day <= 23; day++) {
+    const [first] = notificationDates(new Date(2026, 9, day, 12, 0), last, 14, 10, 0, 1);
+    assert.deepEqual([first.getMonth(), first.getDate(), first.getHours()], [9, 24, 10], `avati ${day}.10`);
+  }
+});
+
+test('järgmised teavitused on valitud vahega', () => {
+  const dates = notificationDates(new Date(2026, 9, 11, 9, 0), new Date(2026, 9, 10, 10, 0), 14, 10, 0, 3);
+  assert.deepEqual(dates.map((d) => [d.getMonth(), d.getDate()]), [[9, 24], [10, 7], [10, 21]]);
+});
+
+test('kui oodatud aeg on möödas, tuleb soovitus lähimal kellaajal', () => {
+  // Viimane soovitus 1. oktoobril, sagedus 3 päeva, nüüd on 14. oktoober kell 11.
+  const [first] = notificationDates(new Date(2026, 9, 14, 11, 0), new Date(2026, 9, 1, 10, 0), 3, 10, 0, 1);
+  assert.deepEqual([first.getDate(), first.getHours()], [15, 10]);
+});
+
+test('sageduse muutmine harvemaks lükkab järgmise soovituse edasi', () => {
+  const last = new Date(2026, 9, 10, 10, 0);
+  const now = new Date(2026, 9, 12, 8, 0);
+  const [daily] = notificationDates(now, last, 1, 10, 0, 1);
+  const [biweekly] = notificationDates(now, last, 14, 10, 0, 1);
+  assert.equal(daily.getDate(), 12);
+  assert.equal(biweekly.getDate(), 24);
 });
 
 test('plaani meeldetuletus päev enne kell 9', () => {

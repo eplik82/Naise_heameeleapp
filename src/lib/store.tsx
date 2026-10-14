@@ -46,6 +46,8 @@ type State = {
   history: string[];
   currentId?: string;
   schedule: ScheduledSuggestion[];
+  /** Millal kasutaja viimati soovituse sai – järgmine tuleb valitud vahe möödudes. */
+  lastSuggestionAt?: string;
   /** Kategooriad, mida kasutaja on juba näinud – uued kategooriad lülitatakse sisse. */
   knownCategories: Category[];
 };
@@ -125,18 +127,21 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         ...s,
         history,
         currentId: delivered[delivered.length - 1].suggestionId,
+        lastSuggestionAt: delivered[delivered.length - 1].date,
         schedule: s.schedule.filter((x) => new Date(x.date) > now),
       });
     }
 
-    const { settings, history } = ref.current;
+    const { settings, history, lastSuggestionAt, plans } = ref.current;
+    const keepIds = plans.flatMap((p) => (p.reminderNotificationId ? [p.reminderNotificationId] : []));
     let schedule: ScheduledSuggestion[] = [];
     if (settings.notificationsEnabled && settings.categories.length > 0 && (await ensureNotificationPermission())) {
-      const dates = notificationDates(now, settings.intervalDays, settings.hour, settings.minute, SCHEDULE_AHEAD);
+      const last = lastSuggestionAt ? new Date(lastSuggestionAt) : undefined;
+      const dates = notificationDates(now, last, settings.intervalDays, settings.hour, settings.minute, SCHEDULE_AHEAD);
       const picks = pickSequence(SUGGESTIONS, settings.categories, history, dates);
-      schedule = await scheduleSuggestions(picks, settings.partnerName);
+      schedule = await scheduleSuggestions(picks, settings.partnerName, keepIds);
     } else {
-      await cancelSuggestions();
+      await cancelSuggestions(keepIds);
     }
     commit({ ...ref.current, schedule });
   }, [commit]);
@@ -169,6 +174,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       } catch {
         // Rikutud andmed – alustame vaikeväärtustega.
       }
+      // Esimene käivitus (või vanem versioon, kus seda polnud): tänane soovitus on
+      // ekraanil, järgmine teavitus tuleb alles valitud vahe möödudes.
+      if (!ref.current.lastSuggestionAt) ref.current = { ...ref.current, lastSuggestionAt: new Date().toISOString() };
       // Uus kasutaja või salvestatud soovitust enam kataloogis pole.
       if (!SUGGESTIONS.some((x) => x.id === ref.current.currentId)) {
         const first = pickSuggestion(SUGGESTIONS, ref.current.settings.categories, ref.current.history);

@@ -37,11 +37,25 @@ export async function ensureNotificationPermission(): Promise<boolean> {
   return asked.granted;
 }
 
-async function cancelByKind(kind: NotificationData['kind']): Promise<void> {
+const SUGGESTION_PREFIX = 'soovitus-';
+const TEST_ID = 'proovisoovitus';
+const PLAN_PREFIX = 'plaan-';
+
+/**
+ * Tühistab kõik ajastatud soovitusteavitused. Säilitatakse ainult plaanide
+ * meeldetuletused (keepIds) ja proovisoovitus – nii ei jää alles ka vanemate
+ * äpiversioonide ajastatud teavitusi.
+ */
+async function cancelSuggestionNotifications(keepIds: string[]): Promise<void> {
   const scheduled = await Notifications.getAllScheduledNotificationsAsync();
   await Promise.all(
     scheduled
-      .filter((n) => (n.content.data as Partial<NotificationData> | undefined)?.kind === kind)
+      .filter(
+        (n) =>
+          n.identifier !== TEST_ID &&
+          !n.identifier.startsWith(PLAN_PREFIX) &&
+          !keepIds.includes(n.identifier),
+      )
       .map((n) => Notifications.cancelScheduledNotificationAsync(n.identifier)),
   );
 }
@@ -52,12 +66,14 @@ export type ScheduledSuggestion = { date: string; suggestionId: string };
 export async function scheduleSuggestions(
   items: { date: Date; suggestion: Suggestion }[],
   partnerName: string,
+  planReminderIds: string[],
 ): Promise<ScheduledSuggestion[]> {
-  await cancelByKind('suggestion');
+  await cancelSuggestionNotifications(planReminderIds);
   const who = partnerName.trim() || 'kaaslast';
-  for (const { date, suggestion } of items) {
+  for (const [i, { date, suggestion }] of items.entries()) {
     const data: NotificationData = { kind: 'suggestion', suggestionId: suggestion.id };
     await Notifications.scheduleNotificationAsync({
+      identifier: `${SUGGESTION_PREFIX}${i}`,
       content: {
         title: `💡 ${suggestion.title}`,
         body: `${suggestion.description} Rõõmusta täna ${who}!`,
@@ -76,8 +92,8 @@ export async function scheduleSuggestions(
   }));
 }
 
-export async function cancelSuggestions(): Promise<void> {
-  await cancelByKind('suggestion');
+export async function cancelSuggestions(planReminderIds: string[]): Promise<void> {
+  await cancelSuggestionNotifications(planReminderIds);
 }
 
 export async function schedulePlanReminder(
@@ -89,6 +105,7 @@ export async function schedulePlanReminder(
   const data: NotificationData = { kind: 'plan', planId };
   const pad = (n: number) => String(n).padStart(2, '0');
   return Notifications.scheduleNotificationAsync({
+    identifier: `${PLAN_PREFIX}${planId}`,
     content: {
       title: `⏰ Meeldetuletus: ${title}`,
       body: `Plaanitud ${pad(planDate.getDate())}.${pad(planDate.getMonth() + 1)} kell ${pad(planDate.getHours())}:${pad(planDate.getMinutes())}. Kas kõik on valmis?`,
@@ -115,6 +132,7 @@ export async function sendTestSuggestion(suggestion: Suggestion): Promise<boolea
   if (!(await ensureNotificationPermission())) return false;
   const data: NotificationData = { kind: 'suggestion', suggestionId: suggestion.id };
   await Notifications.scheduleNotificationAsync({
+    identifier: TEST_ID,
     content: { title: `💡 ${suggestion.title}`, body: suggestion.description, data },
     trigger: {
       type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
